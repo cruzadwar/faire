@@ -1,0 +1,16 @@
+{
+  "name": "Faire - Tâches",
+  "short_name": "Faire",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#d1453b",
+  "icons": [
+    {"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
+  ],
+  "shortcuts": [
+    {"name": "Ajouter une tâche", "url": "./index.html?add=1", "icons": [{"src": "icon.svg", "sizes": "any"}]},
+    {"name": "Aujourd'hui", "url": "./index.html?v=today", "icons": [{"src": "icon.svg", "sizes": "any"}]},
+    {"name": "Mini-fenêtre (widget)", "url": "./index.html?v=widget", "icons": [{"src": "icon.svg", "sizes": "any"}]}
+  ]
+}

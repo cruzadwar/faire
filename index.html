@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#d1453b">
+<link rel="manifest" href="manifest.json">
+<title>Faire - Tâches</title>
+<style>
+:root{--bg:#fff;--side:#fafafa;--fg:#202020;--mut:#808080;--line:#ececec;--acc:#d1453b;--hov:#f1f1f1;--p1:#d1453b;--p2:#eb8909;--p3:#246fe0;--p4:#9a9a9a}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e1e;--side:#262626;--fg:#eee;--mut:#999;--line:#333;--hov:#2e2e2e}}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.4 system-ui,Segoe UI,sans-serif;background:var(--bg);color:var(--fg);display:flex;height:100vh;height:100dvh}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0}
+#side{width:270px;background:var(--side);padding:14px 10px;overflow:auto;flex-shrink:0}
+#main{flex:1;overflow:auto;padding:24px 20px 80px}
+.wrap{max-width:720px;margin:0 auto}
+.nav{display:flex;align-items:center;gap:10px;width:100%;padding:7px 10px;border-radius:8px;text-align:left}
+.nav:hover,.nav.on{background:var(--hov)}
+.nav.on{color:var(--acc);font-weight:600}
+.nav .n{margin-left:auto;color:var(--mut);font-size:12px}
+.h{font-size:12px;color:var(--mut);margin:16px 10px 4px;text-transform:uppercase;letter-spacing:.05em;display:flex;justify-content:space-between}
+h1{font-size:24px;margin:0 0 4px}
+.sub{color:var(--mut);font-size:13px;margin-bottom:16px}
+.task{display:flex;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line);align-items:flex-start}
+.chk{width:20px;height:20px;border-radius:50%;border:2px solid var(--p4);flex-shrink:0;margin-top:1px;display:grid;place-items:center;font-size:12px;color:transparent}
+.chk:hover{color:var(--p4)}
+.chk.p1{border-color:var(--p1);background:#d1453b22}.chk.p2{border-color:var(--p2);background:#eb890922}.chk.p3{border-color:var(--p3);background:#246fe022}
+.done .chk{background:var(--p4);color:#fff;border-color:var(--p4)}
+.done .t{text-decoration:line-through;color:var(--mut)}
+.body{flex:1;min-width:0;cursor:pointer}
+.meta{font-size:12px;color:var(--mut);display:flex;gap:10px;flex-wrap:wrap}
+.late{color:var(--p1)}
+.add{margin:12px 0;border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;gap:8px}
+.add input{flex:1;border:0;background:none;outline:0}
+.add button,.btn{background:var(--acc);color:#fff;padding:6px 14px;border-radius:8px}
+.btn.g{background:var(--hov);color:var(--fg)}
+.hint{font-size:12px;color:var(--mut)}
+.grp{font-weight:600;margin:20px 0 2px;font-size:14px}
+dialog{border:0;border-radius:14px;padding:20px;width:min(480px,92vw);background:var(--bg);color:var(--fg);box-shadow:0 10px 40px #0005}
+dialog::backdrop{background:#0006}
+dialog label{display:block;font-size:12px;color:var(--mut);margin:10px 0 3px}
+dialog input,dialog select,dialog textarea{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.row{display:flex;gap:8px;margin-top:16px;justify-content:space-between}
+#menu{display:none}
+.chip{background:var(--hov);border-radius:10px;padding:0 7px}
+.sub-item{display:flex;gap:8px;align-items:center;margin:4px 0 0 2px;font-size:13px}
+.chk.mini{width:15px;height:15px;font-size:9px;margin:0}
+.sub-item.done .t{text-decoration:line-through;color:var(--mut)}
+#f-subs .sub-item{margin:6px 0}#f-subs .sub-item input{width:auto}#f-subs .sub-item span{flex:1}
+#chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 6px}
+.chipb{border:1px solid var(--line);border-radius:16px;padding:5px 12px;font-size:13px}
+.chipb:hover{background:var(--hov)}.chipb.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+details>summary{cursor:pointer;margin-top:12px}
+.hint{margin-bottom:4px}
+.nav{padding:10px}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;display:none;z-index:9}
+.compact #side,.compact #menu,.compact .hint{display:none}.compact #main{padding:12px}.compact h1{font-size:18px}
+.empty{text-align:center;color:var(--mut);padding:60px 0}
+@media(max-width:700px){#side{position:fixed;inset:0 25% 0 0;z-index:5;transform:translateX(-100%);transition:.2s;width:auto}#side.open{transform:none;box-shadow:0 0 40px #0006}#menu{display:inline-block;margin-bottom:8px}}
+</style>
+</head>
+<body>
+<aside id="side"></aside>
+<main id="main"><div class="wrap">
+  <button id="menu" class="btn g">☰ Menu</button>
+  <h1 id="title"></h1><div class="sub" id="sub"></div>
+  <form class="add" id="quick"><input id="q" placeholder="Ajouter une tâche…" autocomplete="off"><button>Ajouter</button></form>
+  <div id="chips">
+    <button type="button" class="chipb" data-qd="0">Aujourd'hui</button>
+    <button type="button" class="chipb" data-qd="1">Demain</button>
+    <button type="button" class="chipb" data-qd="7">Semaine prochaine</button>
+    <button type="button" class="chipb" id="qpri">⚑ Priorité</button>
+  </div>
+  <div class="hint">Tu peux aussi écrire « demain », « lundi », « #projet », « @étiquette »</div>
+  <div id="list"></div>
+</div></main>
+
+<dialog id="dlg"><form method="dialog" id="f">
+  <label>Titre</label><input id="f-t" required>
+  <label>Notes</label><textarea id="f-n" rows="3"></textarea>
+  <label>Échéance</label><input id="f-d" type="date">
+  <label>Priorité</label><select id="f-p"><option value="1">P1 – Urgente</option><option value="2">P2 – Haute</option><option value="3">P3 – Moyenne</option><option value="4">P4 – Aucune</option></select>
+  <label>Projet</label><select id="f-j"></select>
+  <label>Répétition</label><select id="f-r"><option value="">Aucune</option><option value="d">Chaque jour</option><option value="w">Chaque semaine</option><option value="m">Chaque mois</option></select>
+  <label>Étiquettes (séparées par des virgules)</label><input id="f-l" placeholder="maison, urgent">
+  <label>Rappel</label><input id="f-rem" type="datetime-local">
+  <label>Sous-tâches</label><div id="f-subs"></div><input id="f-sa" placeholder="Ajouter une sous-tâche puis Entrée">
+  <div class="row"><button type="button" class="btn g" id="f-del">Supprimer</button><span><button type="button" class="btn g" id="f-x">Annuler</button> <button class="btn">Enregistrer</button></span></div>
+</form></dialog>
+
+<div id="toast"></div>
+<script>
+const KEY='faire.v1';
+let S;
+try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+S=S||{tasks:[],projects:['Personnel','Travail']};
+S.deleted=S.deleted||{};
+let view={t:'inbox'},fh=null,st;
+const save=()=>{localStorage.setItem(KEY,JSON.stringify(S));clearTimeout(st);st=setTimeout(syncNow,600)};
+const $=id=>document.getElementById(id);
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const today=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+const addDays=(d,n)=>{const r=new Date(d);r.setDate(r.getDate()+n);return r};
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const JOURS=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+const norm=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+
+function parse(txt){
+  let t=txt,date='',pri=4,proj='';
+  const take=(re,fn)=>{const m=norm(t).match(re);if(m){fn(m);t=(t.slice(0,m.index)+' '+t.slice(m.index+m[0].length)).replace(/\s+/g,' ').trim();}};
+  take(/(^|\s)p([1-4])(?=\s|$)/,m=>pri=+m[2]);
+  take(/(^|\s)#(\S+)/,m=>{const n=t.substr(m.index).match(/#(\S+)/)[1];proj=S.projects.find(p=>norm(p)===norm(n))||n});
+  take(/(^|\s)(apres[- ]demain)(?=\s|$)/,()=>date=iso(addDays(today(),2)));
+  take(/(^|\s)(aujourd'?hui)(?=\s|$)/,()=>date=iso(today()));
+  take(/(^|\s)demain(?=\s|$)/,()=>date=iso(addDays(today(),1)));
+  take(/(^|\s)dans (\d+) (jour|jours|semaine|semaines|mois)(?=\s|$)/,m=>{const n=+m[2];date=iso(addDays(today(),m[3].startsWith('jour')?n:m[3].startsWith('sem')?n*7:n*30))});
+  take(/(^|\s)(\d{1,2})\/(\d{1,2})(\/(\d{2,4}))?(?=\s|$)/,m=>{const y=m[5]?(m[5].length==2?2000+ +m[5]:+m[5]):today().getFullYear();date=iso(new Date(y,m[3]-1,m[2]))});
+  take(new RegExp('(^|\\s)('+JOURS.join('|')+')(?=\\s|$)'),m=>{let diff=(JOURS.indexOf(m[2])-today().getDay()+7)%7||7;date=iso(addDays(today(),diff))});
+  const labels=[];
+  for(let m;(m=t.match(/(^|\s)@(\S+)/));){labels.push(m[2]);t=(t.slice(0,m.index)+' '+t.slice(m.index+m[0].length)).replace(/\s+/g,' ').trim();}
+  return {title:t||txt,date,pri,proj,labels};
+}
+
+function dueLabel(d){
+  if(!d)return '';
+  const x=new Date(d+'T00:00'),diff=Math.round((x-today())/864e5);
+  if(diff===0)return "Aujourd'hui";if(diff===1)return 'Demain';if(diff===-1)return 'Hier';
+  if(diff>1&&diff<7)return JOURS[x.getDay()];
+  return x.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+}
+
+function nextDate(d,r){
+  const x=new Date(d+'T00:00');
+  if(r==='d')x.setDate(x.getDate()+1);else if(r==='w')x.setDate(x.getDate()+7);else x.setMonth(x.getMonth()+1);
+  return iso(x);
+}
+
+function filtered(){
+  const td=iso(today()),v=view;
+  let a=S.tasks;
+  if(v.t==='done')return a.filter(x=>x.done).sort((x,y)=>y.doneAt-x.doneAt);
+  a=a.filter(x=>!x.done);
+  if(v.t==='inbox')a=a.filter(x=>!x.proj);
+  else if(v.t==='today')a=a.filter(x=>x.date&&x.date<=td);
+  else if(v.t==='upcoming')a=a.filter(x=>x.date&&x.date>td);
+  else if(v.t==='proj')a=a.filter(x=>x.proj===v.p);
+  else if(v.t==='label')a=a.filter(x=>(x.labels||[]).includes(v.l));
+  else if(v.t==='search')a=a.filter(x=>norm(x.title+' '+x.notes).includes(norm(v.q)));
+  return a.sort((x,y)=>(x.date||'9')<(y.date||'9')?-1:(x.date||'9')>(y.date||'9')?1:x.pri-y.pri);
+}
+
+function taskHTML(x){
+  const late=x.date&&!x.done&&x.date<iso(today());
+  return `<div class="task ${x.done?'done':''}" data-id="${x.id}">
+    <button class="chk p${x.pri}" data-c="${x.id}" aria-label="Terminer">✓</button>
+    <div class="body" data-e="${x.id}"><div class="t">${esc(x.title)}</div>
+      ${x.notes?`<div class="meta">${esc(x.notes.slice(0,80))}</div>`:''}
+      <div class="meta">${x.date?`<span class="${late?'late':''}">📅 ${dueLabel(x.date)}</span>`:''}${x.rep?'<span>🔁</span>':''}${x.rem?`<span>🔔 ${x.rem.replace('T',' ')}</span>`:''}${x.proj?`<span># ${esc(x.proj)}</span>`:''}${(x.labels||[]).map(l=>`<span class="chip">@${esc(l)}</span>`).join('')}${x.sub&&x.sub.length?`<span>☑ ${x.sub.filter(s=>s.done).length}/${x.sub.length}</span>`:''}</div>
+      ${(x.sub||[]).map((s,i)=>`<div class="sub-item ${s.done?'done':''}"><button class="chk mini" data-s="${x.id}|${i}">✓</button><span class="t">${esc(s.t)}</span></div>`).join('')}</div></div>`;
+}
+
+function render(){
+  const v=view,td=iso(today());
+  const cnt=f=>S.tasks.filter(x=>!x.done&&f(x)).length;
+  const labels=[...new Set(S.tasks.filter(x=>!x.done).flatMap(x=>x.labels||[]))].sort();
+  const nav=(t,ic,l,n,p,lb)=>`<button class="nav ${v.t===t&&(!p||v.p===p)&&(!lb||v.l===lb)?'on':''}" data-v="${t}" ${p?`data-p="${esc(p)}"`:''} ${lb?`data-l="${esc(lb)}"`:''}>${ic} ${esc(l)}<span class="n">${n||''}</span></button>`;
+  $('side').innerHTML=
+    `<input id="s" placeholder="🔍 Rechercher" style="width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);margin-bottom:8px">`+
+    nav('inbox','📥','Boîte de réception',cnt(x=>!x.proj))+
+    nav('today','⭐',"Aujourd'hui",cnt(x=>x.date&&x.date<=td))+
+    nav('upcoming','📆','À venir',cnt(x=>x.date&&x.date>td))+
+    nav('done','✅','Terminées','')+
+    `<div class="h">Projets <button id="addp" title="Nouveau projet">＋</button></div>`+
+    S.projects.map(p=>nav('proj','#',p,cnt(x=>x.proj===p),p)).join('')+
+    `<div class="h">Étiquettes</div>`+labels.map(l=>nav('label','@',l,cnt(x=>(x.labels||[]).includes(l)),'',l)).join('')+
+    `<details style="margin-top:16px"><summary class="h" style="cursor:pointer;margin-top:0">Outils</summary><button class="nav" id="rembtn">🔔 Activer les rappels</button><button class="nav" id="syncbtn">🔄 ${fh?'Synchro active':'Synchro par fichier'}</button><button class="nav" id="exp">⬇ Exporter</button><button class="nav" id="imp">⬆ Importer</button></details>`;
+  const titles={inbox:['Boîte de réception',''],today:["Aujourd'hui",new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})],upcoming:['À venir',''],done:['Terminées',''],proj:[v.p,'Projet'],label:['@'+v.l,'Étiquette'],search:['Recherche','« '+v.q+' »']};
+  $('title').textContent=titles[v.t][0];$('sub').textContent=titles[v.t][1];
+  const a=filtered();
+  if(!a.length){$('list').innerHTML='<div class="empty">Rien ici 🎉</div>';return}
+  let h='';
+  if(v.t==='upcoming'){
+    let last='';
+    for(const x of a){if(x.date!==last){last=x.date;h+=`<div class="grp">${dueLabel(x.date)}</div>`}h+=taskHTML(x)}
+  }else h=a.map(taskHTML).join('');
+  $('list').innerHTML=h;
+}
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button,.body');if(!b)return;
+  if(b.dataset.v){view={t:b.dataset.v,p:b.dataset.p,l:b.dataset.l};$('side').classList.remove('open');render()}
+  else if(b.dataset.c){
+    const x=S.tasks.find(t=>t.id==b.dataset.c);
+    if(x.done){x.done=false}
+    else if(x.rep&&x.date){x.date=nextDate(x.date,x.rep);x.notified=false;if(x.rem)x.rem=nextDate(x.rem.slice(0,10),x.rep)+x.rem.slice(10);(x.sub||[]).forEach(s=>s.done=false)}
+    else{x.done=true;x.doneAt=Date.now()}
+    x.u=Date.now();save();render();
+  }
+  else if(b.dataset.s){
+    const [id,i]=b.dataset.s.split('|'),x=S.tasks.find(t=>t.id==id);
+    x.sub[i].done=!x.sub[i].done;x.u=Date.now();save();render();
+  }
+  else if(b.id==='rembtn')askNotif();
+  else if(b.id==='syncbtn')setupSync();
+  else if(b.dataset.e)openEdit(b.dataset.e);
+  else if(b.id==='addp'){const n=(prompt('Nom du projet')||'').trim();if(n&&!S.projects.includes(n)){S.projects.push(n);save();render()}}
+  else if(b.id==='exp'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}));a.download='faire-sauvegarde.json';a.click()}
+  else if(b.id==='imp'){const i=document.createElement('input');i.type='file';i.accept='.json';i.onchange=async()=>{try{const d=JSON.parse(await i.files[0].text());if(Array.isArray(d.tasks)&&Array.isArray(d.projects)){S=d;save();render()}else alert('Fichier invalide')}catch{alert('Fichier invalide')}};i.click()}
+  else if(b.id==='menu')$('side').classList.toggle('open');
+});
+document.addEventListener('input',e=>{
+  if(e.target.id==='s'){const q=e.target.value.trim();view=q?{t:'search',q}:{t:'inbox'};const pos=q.length;render();const s=$('s');s.value=q;s.focus();s.setSelectionRange(pos,pos)}
+});
+
+let qDate=null,qPri=0;
+function drawChips(){
+  document.querySelectorAll('[data-qd]').forEach(b=>b.classList.toggle('on',qDate!=null&&+b.dataset.qd===qDate));
+  $('qpri').classList.toggle('on',qPri>0);$('qpri').textContent=qPri?'⚑ P'+qPri:'⚑ Priorité';
+}
+$('chips').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.qd!=null){qDate=qDate===+b.dataset.qd?null:+b.dataset.qd}
+  else qPri=qPri===0?1:qPri>=3?0:qPri+1;
+  drawChips();$('q').focus();
+});
+$('quick').onsubmit=e=>{
+  e.preventDefault();const v=$('q').value.trim();if(!v)return;
+  const p=parse(v);
+  let proj=p.proj;
+  if(!proj&&view.t==='proj')proj=view.p;
+  if(proj&&!S.projects.includes(proj))S.projects.push(proj);
+  let date=p.date||(qDate!=null?iso(addDays(today(),qDate)):'');if(!date&&view.t==='today')date=iso(today());
+  if(p.pri===4&&qPri)p.pri=qPri;
+  qDate=null;qPri=0;drawChips();
+  S.tasks.push({id:Date.now()+Math.random().toString(36).slice(2,5),title:p.title,notes:'',date,pri:p.pri,proj,rep:'',done:false,labels:p.labels,sub:[],rem:'',u:Date.now()});
+  save();$('q').value='';render();
+};
+
+let editing=null,tmpSub=[];
+function drawSubs(){$('f-subs').innerHTML=tmpSub.map((s,i)=>`<div class="sub-item"><input type="checkbox" data-si="${i}" ${s.done?'checked':''}><span>${esc(s.t)}</span><button type="button" data-sd="${i}">✕</button></div>`).join('')}
+$('f-subs').addEventListener('change',e=>{if(e.target.dataset.si!=null)tmpSub[e.target.dataset.si].done=e.target.checked});
+$('f-subs').addEventListener('click',e=>{if(e.target.dataset.sd!=null){tmpSub.splice(e.target.dataset.sd,1);drawSubs()}});
+$('f-sa').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const v=e.target.value.trim();if(v){tmpSub.push({t:v,done:false});e.target.value='';drawSubs()}}});
+(()=>{const d=document.createElement('details');d.innerHTML='<summary class="hint">Plus d\'options (notes, priorité, répétition, étiquettes, rappel)</summary>';
+  ['f-n','f-p','f-r','f-l','f-rem'].forEach(id=>{const e=$(id);d.append(e.previousElementSibling,e)});
+  $('f-del').parentNode.parentNode.before(d)})();
+function openEdit(id){
+  const x=S.tasks.find(t=>t.id==id);editing=x;
+  tmpSub=(x.sub||[]).map(s=>({...s}));drawSubs();$('f-sa').value='';
+  $('f-l').value=(x.labels||[]).join(', ');$('f-rem').value=x.rem||'';
+  $('f-t').value=x.title;$('f-n').value=x.notes||'';$('f-d').value=x.date||'';$('f-p').value=x.pri;$('f-r').value=x.rep||'';
+  $('f-j').innerHTML='<option value="">Boîte de réception</option>'+S.projects.map(p=>`<option ${p===x.proj?'selected':''}>${esc(p)}</option>`).join('');
+  $('dlg').showModal();
+}
+$('f').onsubmit=()=>{
+  Object.assign(editing,{title:$('f-t').value.trim()||editing.title,notes:$('f-n').value,date:$('f-d').value,pri:+$('f-p').value,proj:$('f-j').value,rep:$('f-r').value,labels:$('f-l').value.split(/[,\s]+/).map(s=>s.replace(/^@/,'').trim()).filter(Boolean),rem:$('f-rem').value,sub:tmpSub,notified:false,u:Date.now()});
+  save();render();
+};
+$('f-x').onclick=()=>$('dlg').close();
+$('f-del').onclick=()=>{if(confirm('Supprimer cette tâche ?')){S.deleted[editing.id]=Date.now();S.tasks=S.tasks.filter(t=>t!==editing);save();$('dlg').close();render()}};
+
+/* Rappels */
+function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',6000)}
+async function askNotif(){
+  if(!('Notification' in window))return toast('Notifications non supportées sur ce navigateur');
+  const p=await Notification.requestPermission();
+  toast(p==='granted'?'Rappels activés (appli ouverte ou installée)':'Rappels refusés');
+}
+function notify(x){
+  const o={body:x.title,tag:x.id,icon:'icon.svg'};
+  if('Notification' in window&&Notification.permission==='granted'){
+    const f=()=>{try{new Notification('Rappel',o)}catch{}};
+    if(navigator.serviceWorker&&navigator.serviceWorker.ready)navigator.serviceWorker.ready.then(r=>r.showNotification('Rappel',o)).catch(f);else f();
+  }
+  toast('🔔 '+x.title);
+}
+function checkRem(){
+  const now=Date.now();let ch=false;
+  for(const x of S.tasks)if(!x.done&&x.rem&&!x.notified&&new Date(x.rem).getTime()<=now){x.notified=true;ch=true;notify(x)}
+  if(ch){save();render()}
+}
+setInterval(checkRem,20000);
+
+/* Synchro par fichier (Chrome/Edge ordinateur) : fusion par date de modification */
+const idb=()=>new Promise((res,rej)=>{const r=indexedDB.open('faire',1);r.onupgradeneeded=()=>r.result.createObjectStore('k');r.onsuccess=()=>res(r.result);r.onerror=rej});
+const idbGet=async k=>{const d=await idb();return new Promise(r=>{const q=d.transaction('k').objectStore('k').get(k);q.onsuccess=()=>r(q.result);q.onerror=()=>r()})};
+const idbSet=async(k,v)=>{const d=await idb();return new Promise(r=>{const t=d.transaction('k','readwrite');t.objectStore('k').put(v,k);t.oncomplete=r})};
+function merge(r){
+  if(!r||!Array.isArray(r.tasks))return;
+  for(const [id,t] of Object.entries(r.deleted||{}))S.deleted[id]=Math.max(S.deleted[id]||0,t);
+  const m=new Map(S.tasks.map(t=>[t.id,t]));
+  for(const t of r.tasks){const l=m.get(t.id);if(!l||(t.u||0)>(l.u||0))m.set(t.id,t)}
+  S.tasks=[...m.values()].filter(t=>!(S.deleted[t.id]>=(t.u||0)));
+  S.projects=[...new Set([...S.projects,...(r.projects||[])])];
+}
+let syncing=false;
+async function syncNow(){
+  if(!fh||syncing)return;syncing=true;
+  try{
+    if((await fh.queryPermission({mode:'readwrite'}))!=='granted')return;
+    const before=JSON.stringify(S);
+    const txt=await(await fh.getFile()).text();
+    if(txt)merge(JSON.parse(txt));
+    localStorage.setItem(KEY,JSON.stringify(S));
+    const w=await fh.createWritable();await w.write(JSON.stringify(S));await w.close();
+    if(JSON.stringify(S)!==before)render();
+  }catch(e){console.warn('synchro',e)}finally{syncing=false}
+}
+async function setupSync(){
+  if(!window.showSaveFilePicker)return toast('Synchro par fichier : Chrome ou Edge sur ordinateur. Sur téléphone, utilise Exporter / Importer.');
+  const types=[{description:'JSON',accept:{'application/json':['.json']}}];
+  try{
+    if(fh){
+      if(confirm('Désactiver la synchronisation ?\n(Annuler = la relancer)')){fh=null;await idbSet('fh',null);return render()}
+      await fh.requestPermission({mode:'readwrite'});return syncNow();
+    }
+    fh=confirm('OK = créer le fichier de synchro (1er appareil)\nAnnuler = choisir un fichier existant (autre appareil)')
+      ?await showSaveFilePicker({suggestedName:'faire-sync.json',types}):(await showOpenFilePicker({types}))[0];
+    await idbSet('fh',fh);await syncNow();render();toast('Synchro activée : place le fichier dans OneDrive, Dropbox ou Drive');
+  }catch(e){if(e.name!=='AbortError')console.warn(e)}
+}
+if(window.indexedDB)idbGet('fh').then(h=>{if(h){fh=h;render();syncNow()}}).catch(()=>{});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){syncNow();checkRem()}});
+
+/* Raccourcis et mode widget compact : ?v=today, ?v=widget, ?add=1 */
+const qs=new URLSearchParams(location.search);
+if(qs.get('v')==='today'||qs.get('v')==='widget')view={t:'today'};
+if(qs.get('v')==='widget')document.body.classList.add('compact');
+render();checkRem();
+if(qs.get('add'))$('q').focus();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
